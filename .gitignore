@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 dist/
 build/
+harbor_jobs/
+.docker-anonymous/

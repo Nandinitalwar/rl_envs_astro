@@ -1,0 +1,11 @@
+{
+  "bodies": ["Sun", "Moon", "Mercury"],
+  "horizon": 24,
+  "missed_task_penalty": 0.5,
+  "optimal_return": 2.66,
+  "positions": [11, 7, 8],
+  "repeat_action_penalty": 0.25,
+  "speeds": [1, 5, 7],
+  "targets": [10, 6, 9],
+  "wait_cost": 0.02
+}

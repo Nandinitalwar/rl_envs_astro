@@ -1,0 +1,17 @@
+[dataset]
+name = "Nandinitalwar/astro-rl"
+version = "1.0.0"
+description = "Deterministic astrology-themed agentic reinforcement-learning tasks."
+keywords = [ "reinforcement-learning", "reasoning", "astrology",]
+[[dataset.authors]]
+name = "Nandinitalwar"
+
+
+[[tasks]]
+name = "Nandinitalwar/zodiac-alignment"
+digest = "sha256:4eb67a1f1b6fa8c38ca663a04c1bafde7fc529daea642708742bb244c77df66f"
+
+[[tasks]]
+name = "Nandinitalwar/transit-timing"
+digest = "sha256:218c3d51237fb1589989d886c8ffcf0eeddb563ccede8c2cfb4e0e71d1b62395"
+

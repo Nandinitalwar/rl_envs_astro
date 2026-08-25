@@ -1,121 +1,94 @@
 # rl-envs-astro
 
-Two Gymnasium environments with synthetic astrology mechanics. They are RL test
-problems, not claims about astronomy, personality, or prediction.
+Two deterministic astrology-themed reinforcement-learning tasks packaged for
+[Harbor](https://github.com/harbor-framework/harbor), plus their reusable
+Gymnasium environments. The mechanics are synthetic test problems, not claims
+about astronomy, personality, or prediction.
 
-## What an RL environment looks like
+## Harbor tasks
 
-An environment is a state machine. The agent observes state, chooses an action,
-receives a reward, and repeats until the episode ends:
+| Task | Objective | Reward |
+| --- | --- | --- |
+| `zodiac-alignment` | Move seven bodies around a cyclic 12-position ring until each reaches its target. | Partial credit for distance reduction; `1.0` for an optimal 25-action solution. |
+| `transit-timing` | Wait or resolve three moving transits at favorable positions. | Normalized schedule return; `1.0` for the optimal timing policy. |
+
+Each task follows Harbor schema `1.4`:
 
 ```text
-agent -- action --> environment
-agent <-- observation, reward, terminated/truncated -- environment
+tasks/<task>/
+├── task.toml                 # metadata, limits, artifact contract
+├── instruction.md            # prompt shown to the agent
+├── environment/              # Dockerfile, scenario, inspection CLI
+├── solution/solve.sh         # oracle policy
+└── tests/test.sh             # independent verifier → reward.json
 ```
 
-Gymnasium exposes that interaction through two methods:
+The agent inspects the scenario with `astro-task observe`, evaluates candidate
+trajectories with `astro-task evaluate`, and writes `{"actions":[...]}` to
+`/app/answer.json`. The verifier independently replays that trajectory and
+writes scalar and diagnostic metrics to `/logs/verifier/reward.json`.
 
-```python
-observation, info = env.reset(seed=7)
-observation, reward, terminated, truncated, info = env.step(action)
-```
+## Install and run
 
-- **Observation:** information available to the policy.
-- **Action:** a legal decision from `env.action_space`.
-- **Reward:** scalar feedback for the last transition.
-- **Terminated:** the task reached a terminal state.
-- **Truncated:** the time limit ended the episode.
-- **Info:** diagnostics that are not part of the policy input.
-
-## Environments
-
-### `Astro/ZodiacAlignment-v0`
-
-A goal-reaching problem on a cyclic 12-position ring.
-
-- Observation: body `positions`, `targets`, and `steps_remaining`.
-- Action space: `Discrete(2 * n_bodies)`; select a body and move it one position
-  clockwise or counterclockwise.
-- Reward: reduction in total circular distance minus `step_cost`, plus
-  `success_bonus` when all bodies reach their targets.
-- End condition: all bodies aligned, or `max_steps` exhausted.
-
-### `Astro/TransitTiming-v0`
-
-An optimal-stopping and scheduling problem.
-
-- Observation: transit `positions`, task `targets`, `resolved` mask, and
-  `days_remaining`.
-- Action space: `Discrete(n_tasks + 1)`; action `0` waits and action `i + 1`
-  resolves task `i`.
-- Resolution score: `1 - circular_distance(position, target) / 6`.
-- Reward: resolution score minus wait/repeated-action costs; unresolved tasks
-  receive a penalty at the horizon.
-- End condition: all tasks resolved, or `horizon` exhausted.
-
-Both environments support deterministic seeding, configurable horizons and
-rewards, controlled reset states, Gymnasium registration, and ANSI/human
-rendering.
-
-## Install
+Requirements: Docker, `uv`, and Python 3.9+.
 
 ```bash
+uv tool install harbor
 uv sync --extra dev
-source .venv/bin/activate
 ```
 
-Alternatively:
+Run the known-good oracle and the zero-action negative control:
 
 ```bash
-python -m pip install -e '.[dev]'
+harbor run -p tasks/zodiac-alignment -a oracle -e docker -n 1
+harbor run -p tasks/zodiac-alignment -a nop -e docker -n 1
+harbor run -p tasks/transit-timing -a oracle -e docker -n 1
+harbor run -p tasks/transit-timing -a nop -e docker -n 1
 ```
 
-## Run an episode
+Run an agent/model supported by Harbor:
+
+```bash
+harbor run -p tasks/zodiac-alignment -a codex -m <provider/model> -e docker -n 1
+```
+
+The root `dataset.toml` groups both content-addressed task packages.
+
+## Gymnasium API
+
+For online RL, the same mechanics remain available as step-by-step Gymnasium
+environments:
 
 ```python
 import gymnasium as gym
-import rl_envs_astro  # registers Astro/* environment IDs
+import rl_envs_astro  # registers Astro/* IDs
 
-env = gym.make("Astro/ZodiacAlignment-v0", render_mode="ansi")
+env = gym.make("Astro/ZodiacAlignment-v0")
 observation, info = env.reset(seed=7)
-
-terminated = truncated = False
-while not (terminated or truncated):
-    action = env.action_space.sample()
-    observation, reward, terminated, truncated, info = env.step(action)
-
-print(env.render())
-env.close()
+observation, reward, terminated, truncated, info = env.step(1)
 ```
 
-Run the demos and tests:
+- `Astro/ZodiacAlignment-v0`: `Discrete(2 * n_bodies)` movement actions.
+- `Astro/TransitTiming-v0`: wait (`0`) or resolve task `i` (`i + 1`).
+
+An RL environment is a state machine: the policy receives an observation,
+chooses an action, and receives a reward and terminal flags. Harbor wraps a
+complete agent episode in an isolated container and scores its submitted
+artifact; Gymnasium exposes each transition directly to a training loop.
+
+## Test
 
 ```bash
-python examples/random_agent.py --env Astro/TransitTiming-v0 --seed 7
-pytest
+uv run pytest
 ```
 
-## Model policies
-
-`build_model_prompt()` serializes the rules, configuration, legal actions, and
-observation. `parse_model_action()` accepts only a valid JSON action before it
-reaches `env.step()`:
-
-```python
-prompt = rl_envs_astro.build_model_prompt(env, observation)
-response = '{"action": 0}'  # replace with model inference
-action = rl_envs_astro.parse_model_action(env, response)
-```
-
-The protocol is provider-independent and does not require API credentials.
+The suite checks Gymnasium contracts, deterministic dynamics, model-action JSON,
+Harbor package layout, and oracle/NOP verifier behavior.
 
 ## Source layout
 
-- [`envs/zodiac_alignment.py`](src/rl_envs_astro/envs/zodiac_alignment.py):
-  alignment dynamics and reward.
-- [`envs/transit_timing.py`](src/rl_envs_astro/envs/transit_timing.py): timing
-  dynamics and reward.
-- [`model_interface.py`](src/rl_envs_astro/model_interface.py): JSON model
+- `tasks/`: Harbor task packages and deterministic verifiers.
+- `src/rl_envs_astro/envs/`: Gymnasium environment implementations.
+- `src/rl_envs_astro/model_interface.py`: provider-independent JSON action
   protocol.
-- [`tests/test_environments.py`](tests/test_environments.py): Gymnasium contract,
-  behavior, seeding, registration, rendering, and protocol tests.
+- `tests/`: unit and integration-level contract tests.

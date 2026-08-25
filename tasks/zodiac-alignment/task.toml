@@ -1,0 +1,30 @@
+schema_version = "1.4"
+artifacts = ["/app/answer.json"]
+
+[task]
+name = "Nandinitalwar/zodiac-alignment"
+version = "1.0.0"
+description = "Solve a symbolic zodiac alignment episode with a minimal action sequence."
+keywords = ["reinforcement-learning", "reasoning", "planning", "astrology"]
+
+[[task.authors]]
+name = "Nandinitalwar"
+
+[metadata]
+category = "symbolic-planning"
+difficulty = "easy"
+reward_type = "deterministic"
+
+[verifier]
+timeout_sec = 60.0
+
+[agent]
+timeout_sec = 300.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 600.0
+os = "linux"
+cpus = 1
+memory_mb = 512
+storage_mb = 1024

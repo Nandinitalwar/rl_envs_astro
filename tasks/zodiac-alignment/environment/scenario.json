@@ -1,0 +1,10 @@
+{
+  "action_encoding": "2 * body_index + direction; even=-1, odd=+1",
+  "bodies": ["Sun", "Moon", "Mercury", "Venus", "Mars", "Jupiter", "Saturn"],
+  "max_steps": 64,
+  "optimal_steps": 25,
+  "positions": [11, 7, 8, 10, 6, 9, 10],
+  "step_cost": 0.01,
+  "success_bonus": 10.0,
+  "targets": [2, 0, 3, 3, 10, 10, 0]
+}

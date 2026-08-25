@@ -5,7 +5,7 @@ build-backend = "hatchling.build"
 [project]
 name = "rl-envs-astro"
 version = "0.1.0"
-description = "Small, testable Gymnasium environments with symbolic astrology themes"
+description = "Harbor and Gymnasium reinforcement-learning tasks with symbolic astrology themes"
 readme = "README.md"
 requires-python = ">=3.9"
 license = { text = "MIT" }
